@@ -1,0 +1,21 @@
+.chat-list-item {
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .chat-list-item:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .chat-name {
+    font-weight: bold;
+  }
+  
+  .chat-last-message {
+    color: #777;
+    font-size: 0.9em;
+  }
+  
