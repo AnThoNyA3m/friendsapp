@@ -1,36 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ChatBox.css';
 
-function ChatBox({ selectedChat, sendMessage }) {
+function ChatBox({ currentUser, selectedUser, socket }) {
   const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
 
-  const handleSend = () => {
-    if (message.trim()) {
-      sendMessage(message);
+  useEffect(() => {
+    socket.on('receiveMessage', (newMessage) => {
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+    });
+
+    return () => {
+      socket.off('receiveMessage');
+    };
+  }, [socket]);
+
+  const handleSendMessage = () => {
+    if (message.trim() && selectedUser) {
+      const newMessage = {
+        from: currentUser,
+        to: selectedUser,
+        text: message,
+        timestamp: new Date().toISOString(),
+      };
+      socket.emit('sendMessage', newMessage);
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
       setMessage('');
     }
   };
 
   return (
     <div className="chat-box">
-      <div className="chat-header">
-        <h2>{selectedChat.name}</h2>
+      <div className="messages-container">
+        {messages.length === 0 ? (
+          <p>Nenhuma mensagem disponível</p>
+        ) : (
+          messages.map((msg, index) => (
+            <div key={index} className="message">
+              <strong>{msg.from}:</strong> {msg.text}
+            </div>
+          ))
+        )}
       </div>
-      <div className="chat-messages">
-        {selectedChat.messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.user === 'você' ? 'outgoing' : 'incoming'}`}>
-            <strong>{msg.user}:</strong> {msg.text}
-          </div>
-        ))}
-      </div>
-      <div className="message-input">
+      <div className="message-input-container">
         <input
           type="text"
+          className="message-input"
+          placeholder="Digite uma mensagem..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Digite uma mensagem..."
         />
-        <button onClick={handleSend}>Enviar</button>
+        <button className="send-button" onClick={handleSendMessage}>
+          Enviar
+        </button>
       </div>
     </div>
   );

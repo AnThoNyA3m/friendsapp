@@ -1,49 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import Sidebar from './components/Sidebar/Sidebar';
 import ChatBox from './components/ChatBox/ChatBox';
-import Login from './pages/Login';
 import './App.css';
 
+const SERVER_URL = 'http://localhost:5000';
+
 function App() {
-  const [user, setUser] = useState(null);
-  const [chats, setChats] = useState([
-    { name: 'Amigo 1', messages: [{ user: 'Amigo 1', text: 'Oi, como vai?' }], lastMessage: 'Oi, como vai?' },
-    { name: 'Amigo 2', messages: [{ user: 'Amigo 2', text: 'Vamos sair amanhã?' }], lastMessage: 'Vamos sair amanhã?' },
-  ]);
-  const [selectedChat, setSelectedChat] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [username, setUsername] = useState('');
+  const [connected, setConnected] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
-  const selectChat = (chat) => {
-    setSelectedChat(chat);
-  };
+  useEffect(() => {
+    if (connected) {
+      fetchUsers();
+      fetchMessages();
+    }
+  }, [connected]);
 
-  const sendMessage = (message) => {
-    if (selectedChat) {
-      const updatedChats = chats.map((chat) =>
-        chat.name === selectedChat.name
-          ? {
-              ...chat,
-              messages: [...chat.messages, { user: user.username, text: message }],
-              lastMessage: message,
-            }
-          : chat
-      );
-      setChats(updatedChats);
-      setSelectedChat({ ...selectedChat, messages: [...selectedChat.messages, { user: user.username, text: message }] });
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(`${SERVER_URL}/users`);
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
     }
   };
 
-  if (!user) {
-    return <Login setUser={setUser} />;
-  }
+  const fetchMessages = async () => {
+    try {
+      const response = await axios.get(`${SERVER_URL}/messages`);
+      setMessages(response.data);
+    } catch (error) {
+      console.error('Erro ao buscar mensagens:', error);
+    }
+  };
+
+  const handleRegisterUser = async () => {
+    if (username.trim() !== '') {
+      try {
+        const response = await axios.post(`${SERVER_URL}/register`, { username });
+        setConnected(true);
+        setUsername(response.data.username);
+        fetchUsers();
+      } catch (error) {
+        console.error('Erro ao registrar usuário:', error);
+      }
+    }
+  };
+
+  const handleSendMessage = async (text) => {
+    if (text.trim() !== '' && selectedUser) {
+      const messageData = { from: username, to: selectedUser, text };
+      try {
+        const response = await axios.post(`${SERVER_URL}/messages`, messageData);
+        setMessages((prevMessages) => [...prevMessages, response.data]);
+      } catch (error) {
+        console.error('Erro ao enviar mensagem:', error);
+      }
+    }
+  };
 
   return (
     <div className="app">
-      <Sidebar user={user} chats={chats} selectChat={selectChat} />
-      {selectedChat ? (
-        <ChatBox selectedChat={selectedChat} sendMessage={sendMessage} />
-      ) : (
-        <div className="chat-placeholder">Selecione um chat para começar</div>
-      )}
+      <div className={`app-container ${connected ? 'connected' : 'disconnected'}`}>
+        {!connected ? (
+          <div className="login-container">
+            <h1>Bem-vindo ao Chat!</h1>
+            <input
+              type="text"
+              placeholder="Digite seu nome de usuário"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleRegisterUser()}
+            />
+            <button onClick={handleRegisterUser}>Entrar</button>
+          </div>
+        ) : (
+          <>
+            <Sidebar users={users} onSelectUser={setSelectedUser} />
+            <ChatBox
+              messages={messages.filter(
+                (msg) =>
+                  (msg.from === username && msg.to === selectedUser) ||
+                  (msg.from === selectedUser && msg.to === username)
+              )}
+              onSendMessage={handleSendMessage}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,13 +1,18 @@
 import React from 'react';
-import './ChatListItem.css';
 
-function ChatListItem({ chat, onClick }) {
+const Sidebar = ({ profilePicture, userName }) => {
+  // Utilize uma imagem padrão caso 'profilePicture' não seja fornecido
+  const picture = profilePicture ?? "default_picture.png";
+
   return (
-    <div className="chat-list-item" onClick={onClick}>
-      <div className="chat-name">{chat.name}</div>
-      <div className="chat-last-message">{chat.lastMessage}</div>
+    <div className="sidebar">
+      <div className="profile-section">
+        <img src={picture} alt="Profile" className="profile-picture" />
+        <span className="user-name">{userName}</span>
+      </div>
+      {/* Outros elementos da Sidebar */}
     </div>
   );
-}
+};
 
-export default ChatListItem;
+export default Sidebar;
